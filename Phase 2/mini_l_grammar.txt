@@ -2,15 +2,15 @@ PROGRAM -> FUNCTION PROGRAM | epsilon
 
 DEC_LOOP -> DECLARATION ; DEC_LOOP | epsilon
 STAT_LOOP -> STATEMENT ; STAT_LOOP | epsilon
-ID_LOOP -> identifier , ID_LOOP | epsilon
-VAR_LOOP -> VAR , VAR_LOOP | epsilon
+ID_LOOP -> , identifier ID_LOOP | epsilon
+VAR_LOOP -> , VAR VAR_LOOP | epsilon
 REL_AND_LOOP -> or REL_AND_EXP REL_AND_LOOP | epsilon
 REL_LOOP -> and REL_EXP REL_LOOP | epsilon
-EXP_LOOP -> EXPRESSION , EXP_LOOP |epsilon
-
+EXP_LOOP -> EXPRESSION EXP_LOOP_2 | epsilon
+EXP_LOOP_2 -> , EXPRESSION EXP_LOOP_2 | epsilon
 
 FUNCTION -> function identifier ; beginparams DEC_LOOP endparams beginlocals DEC_LOOP endlocals beginbody STATEMENT ; STAT_LOOP ENDBODY
-DECLARATION -> identifier , ID_LOOP : DECLARATION_2 integer
+DECLARATION -> identifier ID_LOOP : DECLARATION_2 integer
 DECLARATION_2 -> array [ number ] of | epsilon
 
 STATEMENT -> STAT_1 | STAT_2 | STAT_3 | STAT_4 | STAT_5 | STAT_6 | continue | return EXPRESSION
@@ -23,7 +23,7 @@ STAT_5 -> read VAR VAR_LOOP
 STAT_6 -> write VAR VAR_LOOP
 
 BOOL_EXP -> REL_AND_EXP REL_AND_LOOP
-REL_AND_EXP -> REL_EXP REL_EXP
+REL_AND_EXP -> REL_EXP REL_LOOP
 REL_EXP -> not REL_EXP_2 | REL_EXP_2
 REL_EXP_2 -> EXPRESSION COMP EXPRESSION | true | false | ( BOOL_EXP )
 
