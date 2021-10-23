@@ -40,5 +40,3 @@ TERM_2 -> VAR | number | ( EXPRESSION )
 TERM_3 -> identifier ( EXP_LOOP )
 
 VAR -> identifier | identifier [ EXPRESSION ]
-
-
