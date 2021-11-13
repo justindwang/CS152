@@ -64,7 +64,6 @@
   void push_map_f(Function func);
   void find_var(string name);
   void find_function(string name);
-  void list_decs();
 
 %}
 
@@ -528,17 +527,6 @@ void find_function(string name) {
   if(f_table.find(name) == f_table.end()) {
     string temp = "ERROR: Function not declared: " + name;
     yyerror(temp.c_str());
-  }
-}
-
-void list_decs() {
-  for(map<string,Var>::iterator i = v_table.begin(); i!=v_table.end();i++){
-    if (i->second.type == INT) {
-      temp_buffer << ". " << i->second.name << endl;
-    }
-    else {
-      temp_buffer << ".[] " << i->second.name << ", " << i->second.len << endl;
-    }
   }
 }
 
