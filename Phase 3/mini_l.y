@@ -62,9 +62,9 @@
   map<string, Var> v_table;
   void push_map_v(Var var);
   void push_map_f(Function func);
-  void check_var(string name);
-  void check_function(string name);
-  void print_declarations();
+  void find_var(string name);
+  void find_function(string name);
+  void list_decs();
 
 %}
 
@@ -433,7 +433,7 @@ term: SUB var {
         strcpy($$.name, $2.name);
     }
     | IDENT L_PAREN expression exp_loop R_PAREN {
-        check_function(const_cast<char*>($1));
+        find_function(const_cast<char*>($1));
         stack_exps.push($3.name); 
         while (!stack_exps.empty()){
           temp_buffer << "param " << stack_exps.top() << endl;
@@ -445,7 +445,7 @@ term: SUB var {
         strcpy($$.name, temp.c_str());
       }
     | IDENT L_PAREN R_PAREN {
-        check_function(const_cast<char*>($1));
+        find_function(const_cast<char*>($1));
         string temp = new_temp();
         temp_buffer << ". " << temp << endl;
         temp_buffer << "call " << const_cast<char*>($1) << ", " << temp << endl;
@@ -454,7 +454,7 @@ term: SUB var {
     ;
 
 var: IDENT {
-       check_var($1);
+       find_var($1);
        if(v_table[$1].type == I_ARRAY) {
          yyerror("ERROR: Forgot to specify array index for array variable");
        }
@@ -464,7 +464,7 @@ var: IDENT {
        }
      }
    | IDENT L_SQUARE_BRACKET expression R_SQUARE_BRACKET {
-       check_var($1);
+       find_var($1);
        if(v_table[$1].type == INT) {
          yyerror("ERROR: Specified index for int variable");
        }
@@ -509,7 +509,7 @@ void push_map_f(Function f) {
   }
 }
 
-void check_var(string name) {
+void find_var(string name) {
   if(v_table.find(name) == v_table.end()) {
     string temp = "ERROR: Identifier not declared: " + name;
     yyerror(temp.c_str());
@@ -524,20 +524,20 @@ void check_var(string name) {
       yyerror("ERROR: Using keyword as variable name");}
 }
 
-void check_function(string name) {
+void find_function(string name) {
   if(f_table.find(name) == f_table.end()) {
     string temp = "ERROR: Function not declared: " + name;
     yyerror(temp.c_str());
   }
 }
 
-void print_declarations() {
-  for(map<string,Var>::iterator it = v_table.begin(); it!=v_table.end();++it){
-    if (it->second.type == INT) {
-      temp_buffer << ". " << it->second.name << endl;
+void list_decs() {
+  for(map<string,Var>::iterator i = v_table.begin(); i!=v_table.end();i++){
+    if (i->second.type == INT) {
+      temp_buffer << ". " << i->second.name << endl;
     }
     else {
-      temp_buffer << ".[] " << it->second.name << ", " << it->second.len << endl;
+      temp_buffer << ".[] " << i->second.name << ", " << i->second.len << endl;
     }
   }
 }
