@@ -38,10 +38,6 @@ id_loop:    COMMA IDENT id_loop {printf("id_loop -> COMMA IDENT id_loop\n");}
             | {printf("id_loop -> epsilon\n");}
             ;
 
-var_loop:   COMMA var var_loop {printf("var_loop -> COMMA var var_loop\n");} 
-            | {printf("var_loop -> epsilon\n");}
-            ;
-
 rel_and_loop: OR rel_and_exp rel_and_loop {printf("rel_and_loop -> OR rel_and_exp rel_and_loop\n");} 
             | {printf("rel_and_loop -> epsilon\n");}
             ;
@@ -107,13 +103,21 @@ stat_4:         DO BEGINLOOP stat_loop ENDLOOP WHILE bool_exp{
                 printf("statement -> DO BEGINLOOP stat_loop ENDLOOP WHILE bool_exp\n");}
                 ;
 
-stat_5:         READ var var_loop{
+stat_5:         READ var var_loop1{
                 printf("statement -> READ var var_loop\n");}
                 ;
 
-stat_6:         WRITE var var_loop{
+stat_6:         WRITE var var_loop2{
 		printf("statement -> WRITE var var_loop\n");}
                 ;
+
+var_loop1:   COMMA var var_loop1 {printf("var_loop1 -> COMMA var var_loop1\n");} 
+            | {printf("var_loop1 -> epsilon\n");}
+            ;
+
+var_loop2:   COMMA var var_loop2 {printf("var_loop2 -> COMMA var var_loop2\n");} 
+            | {printf("var_loop2 -> epsilon\n");}
+            ;
 
 bool_exp:       rel_and_exp rel_and_loop{
                 printf("bool_exp -> rel_and_exp rel_and_loop\n");}
@@ -195,7 +199,8 @@ int main() {
 }
 
 void yyerror(const char* s) {
-  fprintf(stderr, "Parse error: %s. Incorrect Expression!\n", s);
+  extern int linenum;
+  fprintf(stderr, "Parse error at line %d: %s. Incorrect Expression!\n", linenum, s);
   exit(1);
 }
 
