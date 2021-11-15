@@ -182,6 +182,9 @@ declaration: IDENT id_loop COLON INTEGER {
            | IDENT id_loop COLON ARRAY L_SQUARE_BRACKET NUMBER R_SQUARE_BRACKET OF INTEGER {
                stack_ids.push($1);
                stack_params.push($1);
+               if($6 <= 0){
+                  yyerror("ERROR: Array size less or equal to zero");
+                }
                while(!stack_ids.empty()) {
                  string temp = stack_ids.top();
                  Var var(0,$6,temp, I_ARRAY);
