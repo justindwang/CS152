@@ -145,6 +145,8 @@ exp_loop: COMMA expression exp_loop {
                ;
 
 function: FUNCTION IDENT {
+            Function f($2);
+            push_map_f(f);
             temp_buffer << "func " << string($2) << endl;
             } 
           SEMICOLON BEGIN_PARAMS dec_loop { 
@@ -159,8 +161,8 @@ function: FUNCTION IDENT {
             if (strcmp($2, "main") == 0) {
               main_dec = 1;      
             }
-            Function f($2);
-            push_map_f(f);
+            // Function f($2);
+            // push_map_f(f);
             while (!stack_params.empty()) {
               stack_params.pop();
             }
@@ -207,14 +209,76 @@ statement: var ASSIGN expression {
              temp_buffer.clear();
              temp_buffer.str(" ");
           }
-         | IF bool_expr THEN statement SEMICOLON stat_loop optional_else ENDIF {
-            //TODO
+         | IF bool_expr THEN {
+             string start = new_label();
+             string endif = new_label();
+             stack_labels.push(endif); 
+             temp_buffer << "?:= " << start << ", " << const_cast<char*>($2.name) << endl;
+             temp_buffer << ":= " << endif << endl;
+             temp_buffer << ": " << start << endl;
+           } 
+           statement SEMICOLON stat_loop optional_else ENDIF {
+             temp_buffer << ": " << stack_labels.top() << endl;
+             stack_labels.pop();
+             
+             code_buffer << temp_buffer.rdbuf();
+             temp_buffer.clear();
+             temp_buffer.str(" ");
+
            }
-          | WHILE bool_expr BEGINLOOP statement SEMICOLON stat_loop ENDLOOP {
-              //TODO
+          | WHILE bool_expr BEGINLOOP {
+
+              string conditional = new_label();
+              string endlabel = new_label();
+              string start = new_label();
+              code_buffer << ": " << start << endl;
+
+              code_buffer << temp_buffer.rdbuf();
+              temp_buffer.clear();
+              temp_buffer.str(" ");
+            
+              temp_buffer << "?:= " << conditional << ", " << const_cast<char*>($2.name) << endl;
+              temp_buffer << ":= " << endlabel << endl;
+              temp_buffer << ": " << conditional << endl;
+
+              stack_labels.push(start);
+              stack_labels.push(endlabel);
+
+            } statement SEMICOLON stat_loop ENDLOOP {
+                code_buffer << temp_buffer.rdbuf();
+                temp_buffer.clear();
+                temp_buffer.str(" ");
+
+                string endlabel = stack_labels.top();
+                stack_labels.pop();
+                string start = stack_labels.top();
+                stack_labels.pop();
+
+                temp_buffer << ":= " << start << endl;
+                temp_buffer << ": " << endlabel << endl;
+ 
+
+                code_buffer << temp_buffer.rdbuf();
+                temp_buffer.clear();
+                temp_buffer.str(" ");
            }
-          | DO BEGINLOOP statement SEMICOLON stat_loop ENDLOOP WHILE bool_expr {
-             //TODO
+          | DO BEGINLOOP {
+             string start = new_label();
+             stack_labels.push(start);
+             code_buffer << ": " << start << endl;
+             code_buffer << temp_buffer.rdbuf();
+             temp_buffer.clear();
+             temp_buffer.str(" ");
+
+            }
+           statement SEMICOLON stat_loop ENDLOOP WHILE bool_expr {
+             string start = stack_labels.top();
+             temp_buffer << "?:= " << start << ", " << const_cast<char*>($9.name) << endl;
+             stack_labels.pop(); 
+             
+             code_buffer << temp_buffer.rdbuf();
+             temp_buffer.clear();
+             temp_buffer.str(" ");
            }
           | READ var var_loop {
              stack_vars.push($2.name);
@@ -249,7 +313,27 @@ statement: var ASSIGN expression {
             temp_buffer.str(" ");
          }
          | CONTINUE {
-             //TODO
+             if(!stack_labels.empty()){
+               string temp00 = stack_labels.top();
+               stack_labels.pop();
+               temp_buffer << ":= " << stack_labels.top() << endl;
+               code_buffer << temp_buffer.rdbuf();
+               temp_buffer.clear();
+               temp_buffer.str(" ");
+               stack_labels.push(temp00);
+             }
+             else {
+               yyerror("ERROR: Continue used outside of loop");
+             }
+            //  if (!stack_labels.empty()) {
+            //    temp_buffer << ":= " << stack_labels.top() << endl;
+            //    code_buffer << temp_buffer.rdbuf();
+            //    temp_buffer.clear();
+            //    temp_buffer.str(" ");
+            //  }
+            //  else {
+            //    yyerror("ERROR: Continue used outside of loop");
+            //  }
            }
          | RETURN expression {
             $$.value = $2.value;
@@ -261,47 +345,69 @@ statement: var ASSIGN expression {
          }
          ;
 
-optional_else: statement SEMICOLON stat_loop {
-            //TODO
-          }          
-          ;
+optional_else:  
+        | ELSE {
+            string label = new_label(); 
+            temp_buffer << ":= " << label << endl;
+            temp_buffer << ": " << stack_labels.top() << endl;
+            stack_labels.pop();
+            stack_labels.push(label);
+        } statement SEMICOLON stat_loop           
+        ;
 
 bool_expr: bool_expr OR relation_and_expr {
-             //TODO
+             string temp = new_temp();
+             strcpy($$.name, temp.c_str());
+             temp_buffer << ". " << temp << endl;
+             temp_buffer << "|| " << temp << ", " << const_cast<char*>($1.name) << ", " << const_cast<char*>($3.name) << endl;
            }
          | relation_and_expr {
-             //TODO
+             strcpy($$.name, $1.name);
            }
          ;
 
 relation_and_expr: relation_and_expr AND relation_expr {
-                    //TODO
-                   }
-                 | relation_expr {
-                      //TODO
-                    }
-                 ;
+             string temp = new_temp();
+             strcpy($$.name, temp.c_str());
+             temp_buffer << ". " << temp << endl;
+             temp_buffer << "&& " << temp << ", " << const_cast<char*>($1.name) << ", " <<  const_cast<char*>($3.name) << endl;
+           }
+         | relation_expr {
+             strcpy($$.name, $1.name);
+           }
+         ;
 
 relation_expr: rel_expr {
-                    //TODO
-                } 
-             | NOT rel_expr {
-                   //TODO
-                }
-             ;
+             strcpy($$.name, $1.name);
+           } 
+         | NOT rel_expr {
+             string temp = new_temp();
+             strcpy($$.name, temp.c_str());
+             temp_buffer << "! " << temp << const_cast<char*>($2.name) << endl;
+           }
+         ;
 
 rel_expr: expression comp expression {
-          //TODO
+          string temp = new_temp();
+          strcpy($$.name, temp.c_str());
+          temp_buffer << ". " << temp << endl;
+          temp_buffer << $2 << " " << temp << ", " << const_cast<char*>($1.name) << ", " << const_cast<char*>($3.name) << endl;
             }
         | TRUE {
-            //TODO
+            string temp = new_temp();
+            strcpy($$.name, temp.c_str());
+            temp_buffer << ". " << temp << endl;
+            temp_buffer << "= " << temp << ", " << "1" << endl;
           }
         | FALSE {
-            //TODO
+            string temp = new_temp();
+            strcpy($$.name, temp.c_str());
+            temp_buffer << ". " << temp << endl;
+            temp_buffer << "= " << temp << ", " << "0" << endl;
           }
         | L_PAREN bool_expr R_PAREN {
-                //TODO
-          }
+                strcpy($$.name, $2.name);
+            }
         ;
 
 comp: EQ { $$ = const_cast<char*>("=="); } 
